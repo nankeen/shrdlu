@@ -40,6 +40,7 @@ class Shrdlu(object):
         self._frequencies = {}
         self.n = len(self.regex.findall(self.text))
         self.critical_values = vals
+        self.v = len(self.regex.findall(self.text)) - 1
 
     @property
     def frequencies(self):
@@ -54,25 +55,33 @@ class Shrdlu(object):
 
     def chi_squared(self):
         chi_squared_calc = 0
+        expected = 0
+        observed = 0
+        self.v = 0
         for key, value in self.expected_f.items():
-            expected = value * self.n
-            if expected < 1:
-                continue
+            expected += value * self.n
             try:
-                observed = self.frequencies[key]
+                observed += self.frequencies[key]
             except KeyError:
+                observed += 0
+            if expected >= 5:
+                chi_squared_calc += (observed - expected) ** 2 / expected
+                self.v += 1
+                expected = 0
                 observed = 0
-            chi_squared_calc += (observed - expected) ** 2 / expected
+        self.v -= 1
         return chi_squared_calc
 
     def test(self):
-        if self.n < 5:
+        chi = self.chi_squared()
+        if self.v <= 0:
             return False
-        if self.n >= len(self.critical_values):
+        if self.v >= len(self.critical_values):
             crit = self.critical_values[-1]
         else:
-            crit = self.critical_values[self.n - 1]
-        if self.chi_squared() < crit:
+            crit = self.critical_values[self.v - 1]
+        print(chi, crit)
+        if chi < crit:
             return True
         else:
             return False
